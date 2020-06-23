@@ -163,7 +163,10 @@ def discriminator_loss(netD, real_imgs, fake_imgs, conditions,
 
 def generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labels,
                    words_embs, sent_emb, match_labels,
-                   cap_lens, class_ids, zsl_d_loss_backward=False):
+                   cap_lens, class_ids, zsl_d_loss_backward=False,
+                   writer: Optional[torch.utils.tensorboard.writer.SummaryWriter] = None,
+                   global_step: Optional[int] = None,
+                   ):
     numDs = len(netsD)
     batch_size = real_labels.size(0)
     logs = ''
@@ -181,6 +184,9 @@ def generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labe
             g_loss = cond_errG
         errG_total += g_loss
         logs += 'g_loss%d: %.2f ' % (i, g_loss.item())
+
+        if writer is not None:
+            writer.add_scalar(f'g_loss/{i}', g_loss.item())
 
         # Ranking loss
         if i == (numDs - 1):
@@ -208,5 +214,11 @@ def generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labe
             errG_total += w_loss + s_loss + ((d_loss_adv + d_loss_cls) * cfg.TRAIN.SMOOTH.LAMBDA_ZSL_ADV_AND_CLS)
             logs += 'w_loss: %.2f s_loss: %.2f ' % (w_loss.item(), s_loss.item())
             logs += f'd_loss_adv: {d_loss_adv.item():.2f} d_loss_cls: {d_loss_cls.item():.2f}'
+
+            if writer is not None:  # torch.utils.tensorboard.writer.SummaryWriter
+                writer.add_scalar('g/w_loss', w_loss.item())
+                writer.add_scalar('g/s_loss', s_loss.item())
+                writer.add_scalar('g/d_loss_adv', d_loss_adv.item())
+                writer.add_scalar('g/d_loss_cls', d_loss_cls.item())
 
     return errG_total, logs

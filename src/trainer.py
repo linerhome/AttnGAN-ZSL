@@ -8,6 +8,7 @@ import torch.optim as optim
 from PIL import Image
 from six.moves import range
 from torch.autograd import Variable
+from torch.utils.tensorboard import SummaryWriter
 
 from logger import setup_logger
 from src.datasets import prepare_data
@@ -174,7 +175,7 @@ class condGANTrainer(object):
             netD = netsD[i]
             torch.save(netD.state_dict(),
                 '%s/netD%d.pth' % (self.model_dir, i))
-        print('Save G/Ds models.')
+        LOGGER.info('Save G/Ds models.')
 
     def set_requires_grad_value(self, models_list, brequires):
         for i in range(len(models_list)):
@@ -195,9 +196,8 @@ class condGANTrainer(object):
                 lr_img = None
             attn_maps = attention_maps[i]
             att_sze = attn_maps.size(2)
-            img_set, _ = \
-                build_super_images(img, captions, self.ixtoword,
-                                   attn_maps, att_sze, lr_imgs=lr_img)
+            img_set, _ = build_super_images(img, captions, self.ixtoword,
+                                            attn_maps, att_sze, lr_imgs=lr_img)
             if img_set is not None:
                 im = Image.fromarray(img_set)
                 fullpath = '%s/G_%s_%d_%d.png'\
@@ -213,13 +213,11 @@ class condGANTrainer(object):
                                     words_embs.detach(),
                                     None, cap_lens,
                                     None, self.batch_size)
-        img_set, _ = \
-            build_super_images(fake_imgs[i].detach().cpu(),
-                               captions, self.ixtoword, att_maps, att_sze)
+        img_set, _ = build_super_images(fake_imgs[i].detach().cpu(),
+                                        captions, self.ixtoword, att_maps, att_sze)
         if img_set is not None:
             im = Image.fromarray(img_set)
-            fullpath = '%s/D_%s_%d.png'\
-                % (self.image_dir, name, gen_iterations)
+            fullpath = '%s/D_%s_%d.png' % (self.image_dir, name, gen_iterations)
             im.save(fullpath)
 
     def train(self):
@@ -275,19 +273,20 @@ class condGANTrainer(object):
                     optimizersD[i].step()
                     errD_total += errD
                     D_logs += 'errD%d: %.2f ' % (i, errD.item())
+                    writer.add_scalar(f'd/errD/{i}', errD.item(), gen_iterations)
 
                 #######################################################
                 # (4) Update G network: maximize log(D(G(z)))
                 ######################################################
                 # compute total loss for training G
-                gen_iterations += 1
 
                 # do not need to compute gradient for Ds
                 # self.set_requires_grad_value(netsD, False)
                 netG.zero_grad()
-                errG_total, G_logs = \
-                    generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labels,
-                                   words_embs, sent_emb, match_labels, cap_lens, class_ids)
+                errG_total, G_logs = generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labels,
+                                                    words_embs, sent_emb, match_labels, cap_lens, class_ids,
+                                                    writer=writer, global_step=gen_iterations,
+                                                    )
                 # backward and update parameters
                 errG_total.backward()
                 optimizerG.step()
@@ -295,7 +294,7 @@ class condGANTrainer(object):
                     avg_p.mul_(0.999).add_(0.001, p.data)
 
                 if gen_iterations % 100 == 0:
-                    print(D_logs + '\n' + G_logs)
+                    LOGGER.info(f'{D_logs}\n{G_logs}')
                 # save images
                 if gen_iterations % 1000 == 0:
                     backup_para = copy_G_params(netG)
@@ -309,13 +308,15 @@ class condGANTrainer(object):
                     #                       words_embs, mask, image_encoder,
                     #                       captions, cap_lens,
                     #                       epoch, name='current')
-            end_t = time.time()
 
-            print('''[%d/%d][%d]
-                  Loss_D: %.2f Loss_G: %.2f Time: %.2fs'''
-                  % (epoch, self.max_epoch, self.num_batches,
-                     errD_total.item(), errG_total.item(),
-                     end_t - start_t))
+                gen_iterations += 1
+
+            end_t = time.time()
+            info = (f'[{epoch}/{self.max_epoch}][{self.num_batches}] '
+                    f'Loss_D: {errD_total.item():.2f} '
+                    f'Loss_G: {errG_total.item():.2f} '
+                    f'Time: {end_t - start_t:.2f}')
+            LOGGER.info(info)
 
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)

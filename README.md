@@ -18,7 +18,7 @@ In the original AttnGAN model there are two types of text-modality embeddings: W
 4. Incorporate ZSL approach in the training phase, not pretraining one
 
 # Implemented solution
-To keep things simple we I've built ZSL Generator and ZSL Discriminator on top of average embeddings obtained from the original encoders architecture (ZSL_ENC: W.mean() -> emb). The overall task is to introduce adversarial and classification loss via discriminative model into optimization objective.
+To keep things simple I've built ZSL Generator and ZSL Discriminator on top of average embeddings obtained from the original encoders architecture (ZSL_ENC: W.mean() -> emb). The overall task is to introduce adversarial and classification loss via discriminative model into optimization objective.
 
 - Because in the original ZSL Paper WGAN + GP is used it is usually recommended to update Discriminator more frequently than Generator (5:1 in the original ZSL code), for the sake of simplicity I ignore that fact and use the vanilla adv. loss function.
 - Visual pivot regularization from the original paper is dropped
@@ -28,5 +28,13 @@ To keep things simple we I've built ZSL Generator and ZSL Discriminator on top o
 # TODO:
 - Choose better adv. loss function and hacks from other papers
 - Try to incorporate ZSL for word-level embeddings (ZSL_ENC: W -> emb) and for training step (not pretraining one)
-- See TODOs in the code
-- Fix eval (not tested)
+- Test eval
+- Tune hyperparams
+- TODOs in the code
+
+
+# Results:
+- DASSM model was trained for 200 epochs. However it may was only one run, so probbably there may be bugs
+- Main model is training, however it's required to tune lambdas and smoothing factors to balance components of the objective function (see image below)
+
+![](./tb.png)
