@@ -1,0 +1,9 @@
+backup
+output
+code/*.pyc
+code/miscc/*.pyc
+.DS_Store
+.idea/
+__pycache__
+.vscode/
+pretrain.log
