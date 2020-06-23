@@ -38,3 +38,4 @@ To keep things simple I've built ZSL Generator and ZSL Discriminator on top of a
 - Main model is training, however it's required to tune lambdas and smoothing factors to balance components of the objective function (see image below)
 
 ![](./tb.png)
+![](./G_average_13_1.jpg)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -186,7 +188,7 @@ def generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labe
         logs += 'g_loss%d: %.2f ' % (i, g_loss.item())
 
         if writer is not None:
-            writer.add_scalar(f'g_loss/{i}', g_loss.item())
+            writer.add_scalar(f'g/g_loss/{i}', g_loss.item(), global_step)
 
         # Ranking loss
         if i == (numDs - 1):
@@ -216,9 +218,9 @@ def generator_loss(netsD, image_encoder, zsl_discriminator, fake_imgs, real_labe
             logs += f'd_loss_adv: {d_loss_adv.item():.2f} d_loss_cls: {d_loss_cls.item():.2f}'
 
             if writer is not None:  # torch.utils.tensorboard.writer.SummaryWriter
-                writer.add_scalar('g/w_loss', w_loss.item())
-                writer.add_scalar('g/s_loss', s_loss.item())
-                writer.add_scalar('g/d_loss_adv', d_loss_adv.item())
-                writer.add_scalar('g/d_loss_cls', d_loss_cls.item())
+                writer.add_scalar('g/w_loss', w_loss.item(), global_step)
+                writer.add_scalar('g/s_loss', s_loss.item(), global_step)
+                writer.add_scalar('g/d_loss_adv', d_loss_adv.item(), global_step)
+                writer.add_scalar('g/d_loss_cls', d_loss_cls.item(), global_step)
 
     return errG_total, logs
