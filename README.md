@@ -39,3 +39,7 @@ To keep things simple I've built ZSL Generator and ZSL Discriminator on top of a
 
 ![](./tb.png)
 ![](./G_average_13_1.jpg)
+
+
+# Weights
+[Yandex.Disk](https://yadi.sk/d/EA1VP5namRh7Gw)
